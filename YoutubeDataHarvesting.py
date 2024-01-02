@@ -1,12 +1,11 @@
 
 from googleapiclient.discovery import build
-from pprint import pprint as pp
 import pymongo
 import mysql.connector
 import pandas as pd
 from pymongo import MongoClient
 import streamlit as st
-#import SQLAlchemy
+
 
 
 api_service_name = "youtube"
@@ -14,7 +13,7 @@ api_version = "v3"
 api_key = "AIzaSyCNvNdgRTeG-0sZ63yHD6Fj3-bWHYkpn14"
 youtube = build(api_service_name, api_version, developerKey=api_key)
 
-
+#to get channel information
 def channel_details(channel_id):
     request = youtube.channels().list(part="snippet,contentDetails,statistics", id=channel_id)
     response = request.execute()
@@ -29,7 +28,7 @@ def channel_details(channel_id):
 
     return datach
 
-
+#to get video id's from playlist id
 def to_getchannel_videos(channel_id):
     video_ids = []
     request = youtube.channels().list(id=channel_id, part='contentDetails')
@@ -52,13 +51,11 @@ def to_getchannel_videos(channel_id):
             break
     return video_ids
 
-
+#to get all videos information from all video id's 
 def get_video_detailas(videos):
     video_data = []
     for video_id in videos:
-        request = youtube.videos().list(part="snippet,contentDetails,statistics",
-                                        # id=#','.join(video_ids[i:i+50]))
-                                        id=video_id)
+        request = youtube.videos().list(part="snippet,contentDetails,statistics",id=video_id)
         response = request.execute()
         for i in response['items']:
             datav = dict(
@@ -81,7 +78,7 @@ def get_video_detailas(videos):
 
 
 
-
+#to get all comments
 def get_comment_info(videos):
     Comment_data = []
     for video_id in videos:
@@ -107,9 +104,9 @@ def get_comment_info(videos):
     return Comment_data
 
 
-
+#MongDB connection
 client = pymongo.MongoClient('mongodb://localhost:27017')
-
+#database creation
 db = client['youtube_data']
 
 
@@ -126,7 +123,7 @@ def main(channel_id):
     return 'upload completed successfully'
 
 
-
+#My SQL connection from MongoDB
 mydb = mysql.connector.connect(
     host="localhost",
     user="root",
@@ -140,8 +137,8 @@ mycursor.execute("CREATE DATABASE if not exists youtube_details")
 
 
 
-
-def channel_tab(selected_channel):
+#Creation and insertion values into channel table in SQL
+def channel_tab():
     drop_query = '''drop table if exists channeldata'''
     mycursor.execute(drop_query)
     mycursor.execute('''CREATE TABLE if not exists channeldata(channel_name VARCHAR(100),
@@ -180,8 +177,8 @@ def channel_tab(selected_channel):
 
 
 
-
-def video_tab(selected_channel):
+#Creation and insertion values into video table in SQL
+def video_tab():
     drop_query = '''drop table if exists videodata'''
     mycursor.execute(drop_query)
     mycursor.execute('''CREATE TABLE if not exists videodata(channel_name VARCHAR(100),
@@ -237,7 +234,7 @@ def video_tab(selected_channel):
     mydb.commit()
 
 
-
+#creation and insertion values into comments table in SQL
 def comnt_tab():
     drop_query = '''drop table if exists comments'''
     mycursor.execute(drop_query)
@@ -266,74 +263,102 @@ def comnt_tab():
     mydb.commit()
 
 
-
-def tables(selected_channel):
-    channel_tab(selected_channel)
-    video_tab(selected_channel)
+#main function
+def tables():
+    channel_tab()
+    video_tab()
     comnt_tab()
-    return "tables created"
+    return  'Tables Created'
  
+ 
+def show_channel_tab():
+        channels_list=[]
+        db=client["youtube_data"]
+        collection=db['channel_details']
+        for chdata in collection.find({},{"_id":0,"channel_info":1}):
+            channels_list.append(chdata["channel_info"])
+        channel_tab=pd.DataFrame(channels_list)
+        return channel_tab
+            
+def show_video_tab():
+    videos_list=[]
+    db = client["youtube_data"]
+    collection=db['channel_details']
+    for vidata in collection.find({},{'_id':0,'video_details':1}):
+        for i in range(len(vidata['video_details'])):
+            videos_list.append(vidata['video_details'][i])
+    video_tab=pd.DataFrame(videos_list)
+    return video_tab
+
+def show_comnt_tab():
+    comment_list=[]
+    db = client["youtube_data"]
+    collection=db['channel_details']
+    for com_data in collection.find({}, {'_id': 0, 'comment_details': 1}):
+        for i in range(len(com_data['comment_details'])):
+            comment_list.append(com_data['comment_details'][i])
+    comnt_tab= pd.DataFrame(comment_list)
+    return comnt_tab
 
 st.title(':blue[YouTube Data Harvesting and Warehousing] ' )
 channel_id = st.text_input("Enter the channel ID")
-   
-ch_ids = []
-if st.button('collect and store data'):
-    db = client['youtube_data']
-    collection= db['channel_details']
-    for ch_data in collection.find({}, {'_id': 0, 'channel_info': 1}):
-        ch_ids.append(ch_data['channel_info']['channel_id'])
+channels = channel_id.split(',')
+channels = [ch.strip() for ch in channels if ch]
 
-    if channel_id in ch_ids:
-        st.success('Channel Details of the Given ID Already Exists')
+with st.sidebar:
+    #st.image('youtube.png')
+    st.header(':blue[Skill Take Away]')
+    st.caption('Python Scripting')
+    st.caption('Data Collection')
+    st.caption('MongoDB')
+    st.caption('API Intergration')
+    st.caption('Data Management using MongoDB and SQL')
 
-    else:
-        insert = channel_details(channel_id)
-        st.success(insert)
+if st.button('Collect and Store data'):
+    for channel_id in channels:
+        ch_ids=[]
+        db = client['youtube_data']
+        collection= db['channel_details']
+        for ch_data in collection.find({}, {'_id': 0, 'channel_info': 1}):
+            ch_ids.append(ch_data['channel_info']['channel_id'])
+
+        if channel_id in ch_ids:
+            st.success('Channel Details of the Given ID Already Exists')
+
+        else:
+            output = channel_details(channel_id)
+            st.success(output)
+
+
+if st.button('Migrate to Sql'):
+    Display= tables()
+    st.success(Display)
+
+show = st.radio('SELECT THE TABLE FOR VIEW', ('CHANNELS', 'VIDEOS', 'COMMENTS'))
+
+if show == "CHANNELS":
+    st.write(show_channel_tab())
     
-selected_channel = st.selectbox("Select a channel", ch_ids, index=0)
-
-
-ch_list = []
-db = client['youtube_data']
-collection = db['channel_details']
-for ch_data in collection.find({}, {'_id': 0, 'channel_info': 1}):
-    ch_list.append(ch_data['channel_info']['channel_name'])
-        
-selected_channel =st.multiselect('select a channel  to migrate the details into sql:',ch_list)
-st.write(f'You selected: {selected_channel}') 
-
+elif show == "VIDEOS":
+    st.write(show_video_tab())
+    
+elif show == "COMMENTS":
+    st.write(show_comnt_tab())
+    
+#SQL connection    
 mydb = mysql.connector.connect(
     host="localhost",
     user="root",
     password="1234", database="youtube_details")
 mycursor = mydb.cursor()
-
-
-if st.button('Migrate to Sql'):
-    Table = tables(selected_channel)
-    st.success(Table)
-
-show = st.radio('SELECT THE TABLE FOR VIEW', ('CHANNELS', 'VIDEOS', 'COMMENTS'), index=None)
-
-if show == "CHANNELS":
-        ch = pd.read_sql_query("select * from channeldata;", mydb)
-        st.write(ch)
         
-elif show == "VIDEOS":
-        vd = pd.read_sql_query("select * from videodata;", mydb)
-        st.write(vd)
-elif show == "COMMENTS":
-        ct = pd.read_sql_query("select * from comments;", mydb)
-        st.write(ct)
-#ch=pd.read_mysql_query("select * from channeldata",mydb)
 
 Question=st.selectbox("select your Question",('1.What are the names of all the videos and their corresponding channels?',
                                      '2.Which channels have the most number of videos, and how many videos do they have?',
                                      '3.What are the top 10 most viewed videos and their respective channels?',
                                      '4.How many comments were made on each video, and what are their corresponding video names?',
                                      '5.Which videos have the highest number of likes, and what are their corresponding channel names?',
-                                     '6.What is the total number of likes and dislikes for each video, and what are their corresponding video names?'
+                                     '6.What is the total number of likes for each video,and what are their corresponding video names?',
                                      '7.What is the total number of views for each channel, and what are their corresponding channel names?',
                                      '8.What are the names of all the channels that have published videos in the year 2022?',
                                      '9.What is the average duration of all videos in each channel, and what are their corresponding channel names?',
@@ -341,16 +366,89 @@ Question=st.selectbox("select your Question",('1.What are the names of all the v
                                     ))
 
 
+if Question == '1.What are the names of all the videos and their corresponding channels?':
+    query1 = '''SELECT video_name, channel_name FROM videodata;'''   
+    mycursor.execute(query1)
+    t1=mycursor.fetchall()
+    st.write(pd.DataFrame(t1, columns=["video_name","channel_name"]))
 
-import sqlalchemy as sa
-import pandas as pd
+if Question == '2.Which channels have the most number of videos, and how many videos do they have?':
+    query2 = '''SELECT channel_name, COUNT(*) AS video_count
+                FROM videodata
+                GROUP BY channel_name
+                ORDER BY video_count DESC;'''   
+    mycursor.execute(query2)
+    t2=mycursor.fetchall()
+    st.write(pd.DataFrame(t2, columns=["channel_name","video_count"]))
 
-engine = sa.create_engine('mysql+mysqlconnector://root:1234@localhost/youtube_details')
 
+if Question == '3.What are the top 10 most viewed videos and their respective channels?':
+    query3 = '''SELECT video_name, channel_name, view_count
+                FROM videodata
+                ORDER BY view_count DESC
+                LIMIT 10;'''   
+    mycursor.execute(query3)
+    t3=mycursor.fetchall()
+    st.write(pd.DataFrame(t3, columns=["video_name","channel_name","view_count"]))
+    
 
-if Question == '1.What are the names of all the videos and their corresponding channels':
-    query1 = '''SELECT video_name, channel_name FROM videodata;'''
-    res_df = pd.read_sql_query(query1, con=engine)
-    st.write(res_df)
+if Question == '4.How many comments were made on each video, and what are their corresponding video names?':
+    query4 = '''SELECT videodata.video_name,count(comments.comment_Id) AS comment_count
+                FROM videodata 
+                LEFT JOIN comments  ON videodata.video_id=comments.Video_id
+                GROUP BY videodata.video_name;'''   
+    mycursor.execute(query4)
+    t4=mycursor.fetchall()
+    st.write(pd.DataFrame(t4, columns=["video_name","comment_count"]))
 
-ct=pd.read_sql_query("select * from comments;",mydb)
+if Question == '5.Which videos have the highest number of likes, and what are their corresponding channel names?':
+    query5 = '''SELECT video_name,channel_name,like_count
+                FROM videodata
+                ORDER BY like_count DESC
+                LIMIT 10;'''   
+    mycursor.execute(query5)
+    t5=mycursor.fetchall()
+    st.write(pd.DataFrame(t5, columns=["video_name","channel_name","like_count"]))
+
+if Question == '6.What is the total number of likes for each video,and what are their corresponding video names?':
+    query6 = '''SELECT v.video_name,SUM(v.like_count) AS total_likes
+                FROM videodata v 
+                GROUP BY v.video_id, v.video_name;'''   
+    mycursor.execute(query6)
+    t6=mycursor.fetchall()
+    st.write(pd.DataFrame(t6, columns=["video_name","total_likes"]))
+    
+if Question == '7.What is the total number of views for each channel, and what are their corresponding channel names?':
+    query7 = '''SELECT channel_name, SUM(view_count) AS total_views
+                FROM videodata
+                GROUP BY channel_name;'''   
+    mycursor.execute(query7)
+    t7=mycursor.fetchall()
+    st.write(pd.DataFrame(t7, columns=["channel_name","total_views"]))
+
+if Question == '8.What are the names of all the channels that have published videos in the year 2022?':
+    query8 = '''SELECT DISTINCT channel_name
+                FROM videodata
+                WHERE year(published_date) = '2022';'''   
+    mycursor.execute(query8)
+    t8=mycursor.fetchall()
+    st.write(pd.DataFrame(t8, columns=["channel_name"]))
+    
+if Question == '9.What is the average duration of all videos in each channel, and what are their corresponding channel names?':
+    query9 = '''SELECT channel_name, AVG(duration) AS average_duration
+                FROM videodata
+                GROUP BY channel_name;'''   
+    mycursor.execute(query9)
+    t9=mycursor.fetchall()
+    st.write(pd.DataFrame(t9, columns=["channel_name","average_duration"]))
+    
+if Question == '10.Which videos have the highest number of comments, and what are their corresponding channel names?':
+    query10 = '''SELECT videodata.video_name, videodata.channel_name, COUNT(comments.comment_id) AS comment_count
+                FROM videodata
+                LEFT JOIN comments ON videodata.video_id = comments.Video_id
+                GROUP BY videodata.video_id, videodata.video_name, videodata.channel_name
+                ORDER BY comment_count DESC
+                LIMIT 10;'''   
+    mycursor.execute(query10)
+    t10=mycursor.fetchall()
+    st.write(pd.DataFrame(t10, columns=["video_name","channel_name","comment_count"]))

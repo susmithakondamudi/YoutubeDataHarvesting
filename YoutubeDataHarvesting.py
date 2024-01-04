@@ -106,7 +106,6 @@ def get_comment_info(videos):
 
 #MongDB connection
 client = pymongo.MongoClient('mongodb://localhost:27017')
-#database creation
 db = client['youtube_data']
 
 
@@ -123,7 +122,7 @@ def main(channel_id):
     return 'upload completed successfully'
 
 
-#My SQL connection from MongoDB
+#My SQL connection
 mydb = mysql.connector.connect(
     host="localhost",
     user="root",
@@ -137,7 +136,7 @@ mycursor.execute("CREATE DATABASE if not exists youtube_details")
 
 
 
-#Creation and insertion values into channel table in SQL
+#Creation and insertion values into channel table 
 def channel_tab():
     drop_query = '''drop table if exists channeldata'''
     mycursor.execute(drop_query)
@@ -175,9 +174,7 @@ def channel_tab():
     
 
 
-
-
-#Creation and insertion values into video table in SQL
+#Creation and insertion values into video table 
 def video_tab():
     drop_query = '''drop table if exists videodata'''
     mycursor.execute(drop_query)
@@ -234,7 +231,7 @@ def video_tab():
     mydb.commit()
 
 
-#creation and insertion values into comments table in SQL
+#creation and insertion values into comments table
 def comnt_tab():
     drop_query = '''drop table if exists comments'''
     mycursor.execute(drop_query)
@@ -263,7 +260,6 @@ def comnt_tab():
     mydb.commit()
 
 
-#main function
 def tables():
     channel_tab()
     video_tab()
@@ -300,6 +296,8 @@ def show_comnt_tab():
     comnt_tab= pd.DataFrame(comment_list)
     return comnt_tab
 
+#Streamlit environment creation
+
 st.title(':blue[YouTube Data Harvesting and Warehousing] ' )
 channel_id = st.text_input("Enter the channel ID")
 channels = channel_id.split(',')
@@ -309,8 +307,7 @@ if st.button('Collect and Store data'):
     channeldata = channel_details(channel_id)
     st.success(channeldata)
 
-
-
+#side bar
 with st.sidebar:
     st.header(':blue[Skill Take Away]')
     st.caption(':blue[Python Scripting]')

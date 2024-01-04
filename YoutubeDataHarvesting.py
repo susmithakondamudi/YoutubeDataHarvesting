@@ -305,34 +305,43 @@ channel_id = st.text_input("Enter the channel ID")
 channels = channel_id.split(',')
 channels = [ch.strip() for ch in channels if ch]
 
-with st.sidebar:
-    #st.image('youtube.png')
-    st.header(':blue[Skill Take Away]')
-    st.caption('Python Scripting')
-    st.caption('Data Collection')
-    st.caption('MongoDB')
-    st.caption('API Intergration')
-    st.caption('Data Management using MongoDB and SQL')
-
 if st.button('Collect and Store data'):
-    for channel_id in channels:
-        ch_ids=[]
-        db = client['youtube_data']
-        collection= db['channel_details']
-        for ch_data in collection.find({}, {'_id': 0, 'channel_info': 1}):
-            ch_ids.append(ch_data['channel_info']['channel_id'])
-
-        if channel_id in ch_ids:
-            st.success('Channel Details of the Given ID Already Exists')
-
-        else:
-            output = channel_details(channel_id)
-            st.success(output)
+    channeldata = channel_details(channel_id)
+    st.success(channeldata)
 
 
-if st.button('Migrate to Sql'):
-    Display= tables()
-    st.success(Display)
+
+with st.sidebar:
+    st.header(':blue[Skill Take Away]')
+    st.caption(':blue[Python Scripting]')
+    st.caption(':blue[Data Collection]')
+    st.caption(':blue[MongoDB]')
+    st.caption(':blue[API Intergration]')
+    st.caption(':blue[Data Management using MongoDB and SQL]')
+
+col1,col2 = st.columns(2)
+
+with col1:
+    if st.button("migrate to MongoDB"):
+        for channel_id in channels:
+            ch_ids=[]
+            db = client['youtube_data']
+            collection= db['channel_details']
+            for ch_data in collection.find({}, {'_id': 0, 'channel_info': 1}):
+                ch_ids.append(ch_data['channel_info']['channel_id'])
+
+            if channel_id in ch_ids:
+                st.success('Channel Details of the Given ID Already Exists')
+
+            else:
+                insert=main(channel_id)
+                st.success(insert)
+
+with col2:
+
+    if st.button('Migrate to Sql'):
+        Display= tables()
+        st.success(Display)
 
 show = st.radio('SELECT THE TABLE FOR VIEW', ('CHANNELS', 'VIDEOS', 'COMMENTS'))
 

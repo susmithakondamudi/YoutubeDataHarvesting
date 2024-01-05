@@ -83,7 +83,7 @@ o	USED FUNCTIONS(SQL)
 •	Exists,
 
 
-susmitha
+
 
 
 

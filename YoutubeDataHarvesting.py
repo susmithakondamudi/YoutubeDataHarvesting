@@ -303,7 +303,7 @@ channel_id = st.text_input("Enter the channel ID")
 channels = channel_id.split(',')
 channels = [ch.strip() for ch in channels if ch]
 
-if st.button('Collect and Store data'):
+if st.button('show channel data'):
     channeldata = channel_details(channel_id)
     st.success(channeldata)
 

@@ -335,7 +335,6 @@ with col1:
                 st.success(insert)
 
 with col2:
-
     if st.button('Migrate to Sql'):
         Display= tables()
         st.success(Display)

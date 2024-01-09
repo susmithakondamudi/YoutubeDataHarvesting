@@ -431,12 +431,12 @@ if st.button('show channel data'):
 
 # side bar
 with st.sidebar:
-    st.header(':blue[Skill Take Away]')
-    st.caption(':blue[Python Scripting]')
-    st.caption(':blue[Data Collection]')
-    st.caption(':blue[MongoDB]')
-    st.caption(':blue[API Intergration]')
-    st.caption(':blue[Data Management using MongoDB and SQL]')
+    with st.expander(':blue[Skills Used]'):
+        st.caption(':blue[Python Scripting]')
+        st.caption(':blue[Data Collection]')
+        st.caption(':blue[MongoDB]')
+        st.caption(':blue[API Intergration]')
+        st.caption(':blue[Data Management using MongoDB and SQL]')
 
 col1, col2 = st.columns(2)
 
